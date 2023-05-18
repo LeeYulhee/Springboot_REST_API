@@ -7,6 +7,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.security.test.context.support.WithUserDetails;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -17,7 +18,9 @@ import java.nio.charset.StandardCharsets;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
@@ -34,7 +37,7 @@ class MemberControllerTest {
         // When
         ResultActions resultActions = mvc
                 .perform(
-                        post("/member/login")
+                        post("/api/v1/member/login")
                                 .content("""
                                         {
                                             "username": "user1",
@@ -49,16 +52,33 @@ class MemberControllerTest {
 
         // Then
         resultActions
-                .andExpect(status().is2xxSuccessful());
+                .andExpect(status().is2xxSuccessful())
+                .andExpect(jsonPath("$.resultCode").value("S-1"))
+                .andExpect(jsonPath("$.msg").exists())
+                .andExpect(jsonPath("$.data.accessToken").exists());
+    }
 
+    @Test
+    @WithUserDetails("user1")
+    @DisplayName("GET /member/me 는 내 정보를 조회하는 URL 이다.")
+    void t2() throws Exception {
+        // When
+        ResultActions resultActions = mvc
+                .perform(
+                        get("/api/v1/member/me")
+                )
+                .andDo(print());
 
-
-        MvcResult mvcResult = resultActions.andReturn();
-
-        MockHttpServletResponse response = mvcResult.getResponse();
-
-        String authentication = response.getHeader("Authentication");
-
-        assertThat(authentication).isNotEmpty();
+        // Then
+        resultActions
+                .andExpect(status().is2xxSuccessful())
+                .andExpect(jsonPath("$.resultCode").value("S-1"))
+                .andExpect(jsonPath("$.msg").exists())
+                .andExpect(jsonPath("$.data.member.id").exists())
+                .andExpect(jsonPath("$.data.member.username").value("user1"));
+        // 세션을 꺼둬서 User를 찾지 못하는(로그인이 안 되는) 상황
+        // t2 테스트케이스도 원래는 로그인이 안 되어야 하는 상황
+        // 하지만 @WithUserDetails("user1") 어노테이션이 상황을 해결
+        // 해당 어노테이션을 사용하면 UserDetailsService 객체를 통해서 User 객체를 바로 받아서 사용
     }
 }
