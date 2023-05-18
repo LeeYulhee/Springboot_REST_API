@@ -48,8 +48,20 @@ public class ApiV1MemberController {
     @Operation(summary = "로그인, 엑세스 토큰 발급")
     // API 작업(operation)에 대한 정보를 제공하는 데 사용하는 어노테이션. 이 어노테이션을 사용하여 API 작업의 제목, 설명, 응답 타입 등을 지정
     public RsData<LoginResponse> login(@Valid @RequestBody LoginRequest loginRequest) {
-        String accessToken = memberService.genAccessToken(loginRequest.getUsername(), loginRequest.getPassword());
+        // String accessToken = memberService.genAccessToken(loginRequest.getUsername(), loginRequest.getPassword());
         // 토큰 발급
+
+        Member member = memberService
+                .findByUsername(loginRequest.getUsername())
+                .orElse(null);
+
+        if (member == null) return RsData.of("F-1", "존재하지 않는 회원입니다.");
+
+        RsData rsData = memberService.canGenAccessToken(member, loginRequest.getPassword());
+
+        if (rsData.isFail()) return rsData;
+
+        String accessToken = memberService.genAccessToken(member, loginRequest.getPassword());
 
         // resp.addHeader("Authentication", accessToken);
         // 응답 헤더는 HttpServletResponse의 addHeader를 통해서 원하는 내용으로 만들 수 있음 -> 아이디랑 비번으로 로그인 하면 토큰을 받을 수 있게 됨

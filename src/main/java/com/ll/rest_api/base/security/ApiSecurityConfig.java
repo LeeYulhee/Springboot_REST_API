@@ -5,6 +5,7 @@ import com.ll.rest_api.base.security.filter.JwtAuthorizationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.web.SecurityFilterChain;
@@ -19,7 +20,7 @@ public class ApiSecurityConfig {
     private final JwtAuthorizationFilter jwtAuthorizationFilter;
     private final ApiAuthenticationEntryPoint authenticationEntryPoint;
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain apiSecurityFilterChain(HttpSecurity http) throws Exception {
         http
                 .securityMatcher("/api/**") // 아래의 모든 설정은 /api/** 경로에만 적용
                 .exceptionHandling(exceptionHandling -> exceptionHandling
@@ -27,7 +28,9 @@ public class ApiSecurityConfig {
                 )
                 .authorizeHttpRequests(
                         authorizeHttpRequests -> authorizeHttpRequests
-                                .requestMatchers("/api/*/member/login").permitAll() // 로그인은 누구나 가능
+                                .requestMatchers(HttpMethod.POST, "/api/*/member/login").permitAll() // 로그인은 누구나 가능
+                                .requestMatchers(HttpMethod.GET, "/api/*/articles").permitAll() // 글 보기는 누구나 가능
+                                .requestMatchers(HttpMethod.GET, "/api/*/articles/*").permitAll() // 글 보기는 누구나 가능
                                 .anyRequest().authenticated() // 나머지는 인증된 사용자만 가능
                 )
                 // .authorizeHttpRequests... -> 어디까지 접근 허용할지 정하는 메서드
